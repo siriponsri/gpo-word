@@ -15,6 +15,59 @@
 # translated UI was consulted or copied; add entries the same way.
 # Product, format and technology names (KhianKrub, PDF, Markdown, Word …) stay in Latin letters.
 
+# Ribbon and menu labels visible in the Windows layout.
+	Above Chart	เหนือแผนภูมิ
+	All Levels	ทุกระดับ
+	Alt text	ข้อความแสดงแทน
+	Alt:	ข้อความแสดงแทน:
+	Body Text	ข้อความเนื้อหา
+	Bottom of Page	ด้านล่างของหน้า
+	Bullet Library	คลังสัญลักษณ์แสดงหัวข้อย่อย
+	Chart Title	ชื่อแผนภูมิ
+	Convert Text to Table…	แปลงข้อความเป็นตาราง…
+	Current Position	ตำแหน่งปัจจุบัน
+	Custom Margins…	กำหนดระยะขอบเอง…
+	Delete Table Style	ลบสไตล์ตาราง
+	Draw Table	วาดตาราง
+	Format Page Numbers…	จัดรูปแบบเลขหน้า…
+	Glow	เรืองแสง
+	Glow Colors	สีเรืองแสง
+	H:	สูง:
+	Insert Table…	แทรกตาราง…
+	Landscape	แนวนอน
+	Level {n}	ระดับ {n}
+	Line Numbering Options…	ตัวเลือกเลขบรรทัด…
+	Modify Table Style…	แก้ไขสไตล์ตาราง…
+	More Columns…	คอลัมน์เพิ่มเติม…
+	New Drawing Canvas	พื้นที่วาดภาพใหม่
+	Page Breaks	ตัวแบ่งหน้า
+	Page Number Position…	ตำแหน่งเลขหน้า…
+	Page X of Y	หน้า X จาก Y
+	Portrait	แนวตั้ง
+	Quick Tables	ตารางด่วน
+	Remove Pen	เอาปากกาออก
+	Reset	ตั้งค่าใหม่
+	Reset Crop	คืนค่าการครอบตัด
+	Rotation:	การหมุน:
+	Scale Drawing	ปรับขนาดภาพวาด
+	Section Breaks	ตัวแบ่งส่วน
+	Select Cell	เลือกเซลล์
+	Select Column	เลือกคอลัมน์
+	Select Row	เลือกแถว
+	Select Table	เลือกตาราง
+	Shadow	เงา
+	Show First Line Only	แสดงเฉพาะบรรทัดแรก
+	Show Level	แสดงระดับ
+	Show Text Formatting	แสดงการจัดรูปแบบข้อความ
+	Soft Edges	ขอบนุ่ม
+	Text Fill	สีเติมข้อความ
+	Text Outline	เส้นขอบข้อความ
+	Top of Page	ด้านบนของหน้า
+	W:	กว้าง:
+	Weight	ความหนา
+	Wrap Text Sides	ตัดข้อความด้านข้าง
+	{n} pt	{n} พอยต์
+
 	(no suggestions)	(ไม่มีคำแนะนำ)
 	About	เกี่ยวกับ
 	Accept	ยอมรับ

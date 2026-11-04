@@ -89,6 +89,68 @@ fn the_thai_catalog_is_well_formed() {
     assert!(errors.is_empty(), "{errors:#?}");
 }
 
+/// These labels were exposed by the Windows CI runner's ribbon layout. Checking them directly
+/// keeps coverage independent of the test machine's font metrics and visible menu layout.
+#[test]
+fn windows_ribbon_labels_have_thai_translations() {
+    let labels = [
+        "Above Chart",
+        "All Levels",
+        "Alt text",
+        "Alt:",
+        "Body Text",
+        "Bottom of Page",
+        "Bullet Library",
+        "Chart Title",
+        "Convert Text to Table…",
+        "Current Position",
+        "Custom Margins…",
+        "Delete Table Style",
+        "Draw Table",
+        "Format Page Numbers…",
+        "Glow",
+        "Glow Colors",
+        "H:",
+        "Insert Table…",
+        "Landscape",
+        "Level {n}",
+        "Line Numbering Options…",
+        "Modify Table Style…",
+        "More Columns…",
+        "New Drawing Canvas",
+        "Page Breaks",
+        "Page Number Position…",
+        "Page X of Y",
+        "Portrait",
+        "Quick Tables",
+        "Remove Pen",
+        "Reset",
+        "Reset Crop",
+        "Rotation:",
+        "Scale Drawing",
+        "Section Breaks",
+        "Select Cell",
+        "Select Column",
+        "Select Row",
+        "Select Table",
+        "Shadow",
+        "Show First Line Only",
+        "Show Level",
+        "Show Text Formatting",
+        "Soft Edges",
+        "Text Fill",
+        "Text Outline",
+        "Top of Page",
+        "W:",
+        "Weight",
+        "Wrap Text Sides",
+        "{n} pt",
+    ];
+    let th = thai();
+    let missing: Vec<_> = labels.into_iter().filter(|s| !super::has(th, s) || super::tr(th, s) == *s).collect();
+    assert!(missing.is_empty(), "missing Thai translations: {missing:?}");
+}
+
 /// Everything drawn on the ribbon tabs, the File page and the right-click menus has a Thai entry,
 /// so a new button or menu item fails here until it is translated.
 #[test]
