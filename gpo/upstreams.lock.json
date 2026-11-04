@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "base": {"repository":"https://github.com/chanonss/khiankrub","branch":"my-changes","commit":"5ae5731ff8e343f26ec35b485c16b8b99af63662"},
+  "upstream": {"repository":"https://github.com/storytold/wordcraft","branch":"main","commit":"fd7f6621a1419c7c99f2293c9e99b1b7c4b87282"},
+  "license":"MIT OR Apache-2.0",
+  "import":"GitHub source snapshot; each original file verified against its Git blob SHA"
+}

@@ -1,0 +1,44 @@
+name: GPO Windows preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, gpo/windows-preview]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.95'
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: GPO document integration tests
+        run: cargo test -p wordcraft-engine --test gpo
+      - name: Required repository checks
+        run: cargo xtask ci
+      - name: Build Windows preview
+        run: cargo build --release -p wordcraft -p wordcraft-cli
+      - name: Package public preview without private templates
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist/GPOWord-preview/data,dist/GPOWord-preview/documents -Force | Out-Null
+          Copy-Item target/release/wordcraft.exe dist/GPOWord-preview/GPOWord.exe
+          Copy-Item target/release/wordcraft-cli.exe dist/GPOWord-preview/wordcraft-cli.exe
+          Copy-Item LICENSE-MIT,LICENSE-APACHE,NOTICE,README.md dist/GPOWord-preview/
+          Copy-Item -Recurse gpo dist/GPOWord-preview/gpo
+          Set-Content -LiteralPath dist/GPOWord-preview/GPOWord.portable -Value '1' -Encoding ascii
+          Compress-Archive -LiteralPath dist/GPOWord-preview -DestinationPath dist/GPOWord-windows-x64-preview.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GPOWord-windows-x64-preview
+          path: dist/GPOWord-windows-x64-preview.zip
+          if-no-files-found: error
