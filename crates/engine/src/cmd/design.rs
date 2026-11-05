@@ -68,7 +68,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("design.paragraphSpacing", "Paragraph Spacing", "Design › Document Formatting", para_spacing)
             .params(r#"{"value": "default|none|compact|tight|open|relaxed|double"}"#),
         CommandSpec::new("design.watermark", "Watermark", "Design › Page Background", watermark)
-            .params(r#"{"text"?: string, "remove"?: bool, "diagonal"?: bool, "color"?: "RRGGBB"}"#),
+            .params(r#"{"text"?: string, "remove"?: bool, "diagonal"?: bool, "font"?: string, "color"?: "RRGGBB"}"#),
         CommandSpec::new("design.pageColor", "Page Color", "Design › Page Background", |s, v| {
             s.doc.settings.page_color = p::str(v, "color").and_then(Rgb::parse);
             s.doc.settings.page_picture = None;
@@ -204,6 +204,12 @@ fn watermark(s: &mut Session, v: &Value) -> CmdResult {
     let mut wm = s.doc.settings.watermark.clone().unwrap_or_default();
     if let Some(t) = p::str(v, "text") {
         wm.text = t.chars().take(200).collect();
+    }
+    if let Some(font) = p::str(v, "font") {
+        if font.trim().is_empty() || font.len() > 200 {
+            return Err(CmdError::Params("Invalid watermark font".into()));
+        }
+        wm.font = font.into();
     }
     if let Some(d) = p::bool(v, "diagonal") {
         wm.diagonal = d;

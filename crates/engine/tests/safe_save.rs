@@ -169,3 +169,23 @@ fn replacement_keeps_existing_unix_permissions() {
     saved(&path);
     assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
 }
+
+#[test]
+fn save_as_new_refuses_an_existing_file_and_saves_a_new_one() {
+    let d = Scratch::new();
+    let path = d.path("original.docx");
+    let bytes = original(&path);
+    let mut s = Session::new(edited());
+    s.path = Some(path.clone());
+    s.dirty = true;
+    assert!(s.run("file.saveAs", &json!({"path": path, "noOverwrite": true})).is_err());
+    assert!(s.dirty);
+    assert_eq!(s.path.as_ref(), Some(&path));
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    let copy = d.path("new.docx");
+    s.run("file.saveAs", &json!({"path": copy, "noOverwrite": true})).unwrap();
+    assert!(!s.dirty);
+    assert_eq!(s.path.as_ref(), Some(&copy));
+    saved(&copy);
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}

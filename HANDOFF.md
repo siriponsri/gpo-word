@@ -41,7 +41,7 @@ Potential build issues include dependency-lock drift, trait/API mismatches, plat
 - crates/engine/src/gpo.rs: profiles, styles, deterministic checks/utilities, comparison, template fields and draft context.
 - crates/engine/tests/gpo.rs: proposed GPO integration tests; run and assess their coverage.
 - crates/engine/src/cmd/gpo.rs: registered checks, fill, comparison, revision, export and batch commands.
-- apps/wordcraft/src/gpo.rs: workbench, no-code controls, optional AI calls and DPAPI integration.
+- apps/wordcraft/src/gpo.rs: GPO ribbon and docked task pane, no-code controls, optional AI calls and DPAPI integration.
 - apps/wordcraft/src/gpo_storage.rs: template discovery, relative paths and portable data.
 - scripts/Start-GPOWord.ps1: source build/launch helper.
 - scripts/Package-Portable.ps1: local executable-plus-template ZIP.

@@ -1,5 +1,9 @@
 # Validation status
 
+> **Expanded UX status (2026-11-05):** The current source passed all six local CI stages. Development-build UI checks and the extracted final release workflow passed as recorded below. Earlier package results are distinguished from the final release. The PDF add-on is paused.
+
+> The GPO PDF export now supports exclusive creation. A real-app development-build check verified Thai watermark text, refusal to overwrite an existing PDF and an unchanged source document.
+
 Evidence recorded on Windows, 2026-11-04. This is a preview, not an assertion that any template is approved for operational use.
 
 | Check | Result | Evidence and limits |
@@ -27,3 +31,34 @@ Evidence recorded on Windows, 2026-11-04. This is a preview, not an assertion th
 Reference checks validate syntax and placeholders, not the existence of authoritative records. Comparison is not a complete visual or formatting diff. Review generated output and template suitability before use. Dedicated OJT and TOR templates were not supplied.
 
 The template pack is confidential. Do not add `docsStorage`, generated documents, local settings or keys to a public repository. The Desktop installation fixture passed without touching the actual Desktop and preserved existing sample files in the fixture.
+
+
+## GPO ribbon update
+
+The updated Windows development build launched with synthetic content. All six ribbon buttons opened distinct docked panels; light and dark appearances were inspected, and the no-document ribbon regression passed. A preliminary extracted package discovered a locally bundled template, created a separate copy, and preserved all 19 template-pack files. A synthetic batch produced 20 matching DOCX files, refused overwrites, and exported plain and watermarked PDFs without changing its source. One local DOCX and one legacy DOC rendered to nonblank PDFs with unchanged source hashes; visual fidelity was not established. The fit-width action and pane scrolling were exercised in the running app. Final-source CI passed formatting, Clippy, workspace tests, asset attribution, layering and WASM checks. The exact final ZIP was later tested; installed binaries were verified by hash as described below. The PDF organizer add-on is paused; its example could not be inspected because its Library transfer failed during required Windows metadata handling.
+
+
+> The Thai watermark font and glyph-position correction was added after the preceding CI run. A Windows development build produced a visible Thai watermark and a one-page PDF from which the exact Thai text was extracted; the source file hash was unchanged by export. Fresh full CI passed formatting, Clippy, workspace tests, asset attribution, layering and WASM; the exact final package was later retested as described below.
+
+## Expanded UX validation — 2026-11-05
+
+- The source including the optional-path label, CSV feedback, Thai watermark correction and PDF overwrite protection passed `cargo xtask ci`: formatting, Clippy, workspace tests, asset attribution, layering and WASM. The targeted GPO tests cover unresolved fields, tracked deletions, literal field values, CSV mapping and changed-input refusal; the save test covers exclusive creation. The localhost mock verified that the outgoing AI request body matches the preview construction without placing the key in the body.
+- A Windows development build opened with an isolated synthetic template pack. Actual pointer actions created and saved a new template copy with the template hash unchanged, opened and hid its text preview, and selected a document finding at body offset 20. After an edit, the check was marked stale and the jump button disabled. A separate UI test showed consent being cleared when AI context changed; no network request was made. Small-screen screenshots show the fit-width action; the prior default 100% view can clip content until the user chooses it or closes the pane.
+- An independent real-app walkthrough was limited by an unfocused test window; it did not verify typing or native Save As. Its startup-font notice observation is documented in the task evidence. Native file-dialog and header/footer jump UI behavior remain unverified.
+- A fresh release build of the current source succeeded with both application and CLI. The guarded cached checkout was restored and its baseline checked. The extracted release candidate and final ZIP results follow; the guarded Desktop update completed with verified hashes.
+
+### Expanded UX package rehearsal (development binaries)
+
+A fresh development-binary ZIP passed archive integrity, required-file and sensitive-settings scans, launched from a clean extraction, opened six distinct ribbon views, and matched all 19 private template-pack files to the local snapshot. The extracted app passed unresolved-field detection, exclusive save refusal, document comparison, CSV preview, a 20-record merge with expected contents, overwrite refusal, and plain, English-watermarked and Thai-watermarked PDF exports with the saved source unchanged. A private DOCX opened locally as an untitled template copy and was saved to a new local file with the source hash unchanged. One packaged DOCX and one legacy DOC rendered locally to nonblank PDF pages with unchanged input hashes. These are development-build rehearsal results; separate final-release results follow. Visual fidelity remains unverified.
+
+### Extracted release candidate (current source)
+
+The release candidate ZIP passed integrity, required-file and sensitive-settings checks. Its freshly extracted executable started, opened six distinct ribbon views and exited normally. All 19 packaged template-pack files matched the local snapshot. A synthetic workflow detected unresolved fields, refused an existing DOCX, compared revisions, previewed CSV, generated 20 correct DOCX files and refused collisions. Plain, English-watermarked and Thai-watermarked PDFs were produced; Thai text was extractable, an existing PDF was preserved, and the saved source remained unchanged.
+
+One packaged private DOCX opened as a new copy and saved locally without changing the source. The release CLI rendered one DOCX and one legacy DOC locally to nonblank pages with source hashes unchanged. These checks do not establish visual fidelity against Microsoft Word. No private content was uploaded. Live AI provider calls, DPAPI behavior under another Windows account, native file-dialog interaction, header/footer jump interaction and use on another machine were not tested. The final ZIP was subsequently retested after assembly, as recorded below.
+
+### Final extracted ZIP and local installation
+
+The final archive passed integrity, required-file and sensitive-settings scans and matched all 19 template-pack files to the private local snapshot. Its extracted application launched, displayed six distinct ribbon views, used a portable profile and exited normally. The extracted workflow detected unresolved fields, compared revisions, refused duplicate DOCX and PDF files, generated and checked 20 DOCX outputs, and exported ordinary and Thai-watermarked PDF without changing the saved source. A packaged private DOCX opened and saved as a new local copy with its source unchanged. One DOCX and one legacy DOC rendered locally to nonblank pages with unchanged source hashes.
+
+The locally installed executable, CLI, README, validation document, Thai manual and ZIP matched the tested package by hash; protected existing files and samples remained unchanged. The installed executable itself was not launched in place: identical bytes were launched from the extracted ZIP. The final archive SHA-256 is `af035bb14ca9b6b3a4f17e8c4098c08913ad28f4f45094c12e96b4424c340828`. Live AI provider calls, another Windows account or computer, native file-picker interaction, header/footer finding navigation and visual comparison against Word remain untested.

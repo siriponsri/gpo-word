@@ -462,6 +462,16 @@ fn migrate_units(v: &mut Value) {
     }
 }
 
+/// A host-provided ribbon tab and its docked task pane.
+pub trait RibbonExtension {
+    fn tab_name(&self) -> &str;
+    fn tab_label(&self) -> &str {
+        self.tab_name()
+    }
+    fn ribbon(&mut self, app: &mut WordApp, ui: &mut egui::Ui);
+    fn pane(&mut self, app: &mut WordApp, ui: &mut egui::Ui);
+}
+
 /// The application.
 pub struct WordApp {
     pub session: Session,
@@ -724,6 +734,11 @@ impl WordApp {
     /// opens one (#1129).
     pub fn has_document(&self) -> bool {
         self.no_document != Some(self.session.document_id())
+    }
+
+    /// Whether the current document has changes not confirmed saved to disk.
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.has_document() && (self.session.dirty || self.save_unconfirmed())
     }
 
     /// Preferences to save between runs: the UI state plus the current user name and editing
@@ -2203,6 +2218,11 @@ impl WordApp {
 
     /// Lay out the window.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        self.ui_with_extension(ui, None);
+    }
+
+    /// Lay out the editor with an optional host-owned ribbon extension.
+    pub fn ui_with_extension(&mut self, ui: &mut egui::Ui, mut extension: Option<&mut dyn RibbonExtension>) {
         let t0 = now_ms();
         let ctx = ui.ctx().clone();
         i18n::set_current(i18n::Lang::from_pref(&self.ui.language));
@@ -2232,16 +2252,22 @@ impl WordApp {
         } else if !self.has_document() {
             // No document open (#1129): the ribbon greyed out but for Help, and no page.
             chrome::title_bar(self, ui);
-            ribbon::show(self, ui);
+            ribbon::show_with_extension(self, ui, &mut extension);
             updates::bar(self, ui);
             chrome::status_bar(self, ui);
+            if let Some(ext) = extension.as_mut() {
+                ext.pane(self, ui);
+            }
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |_| {});
         } else {
             chrome::title_bar(self, ui);
             if !self.session.view.focus_mode {
-                ribbon::show(self, ui);
+                ribbon::show_with_extension(self, ui, &mut extension);
                 updates::bar(self, ui);
                 chrome::status_bar(self, ui);
+                if let Some(ext) = extension.as_mut() {
+                    ext.pane(self, ui);
+                }
                 panes::show(self, ui);
             }
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
@@ -7336,5 +7362,49 @@ mod tests {
         h.step();
         h.step();
         assert!(h.state().session.view.read_mode && shown(&h, "Focus"), "Immersive Reader keeps the status bar");
+    }
+}
+
+#[cfg(test)]
+mod ribbon_extension_tests {
+    use super::*;
+    use egui_kittest::kittest::Queryable;
+
+    #[derive(Default)]
+    struct Extension {
+        clicks: usize,
+    }
+    impl RibbonExtension for Extension {
+        fn tab_name(&self) -> &str {
+            "GPO test"
+        }
+        fn ribbon(&mut self, _: &mut WordApp, ui: &mut egui::Ui) {
+            if ui.button("Choose template").clicked() {
+                self.clicks += 1;
+            }
+        }
+        fn pane(&mut self, _: &mut WordApp, _: &mut egui::Ui) {}
+    }
+
+    #[test]
+    fn host_ribbon_remains_available_without_a_document() {
+        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+        app.start_screen();
+        assert!(!app.has_document());
+        app.ui.backstage = false;
+        app.run("ui.tab", serde_json::json!({"tab": "GPO test"})).unwrap();
+        let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 300.0)).build_ui_state(
+            |ui, state: &mut (WordApp, Extension)| {
+                let ctx = ui.ctx().clone();
+                state.0.logic(&ctx);
+                state.0.ui_with_extension(ui, Some(&mut state.1));
+            },
+            (app, Extension::default()),
+        );
+        harness.run_steps(4);
+        harness.get_by_label("Choose template").click();
+        harness.run();
+        assert_eq!(harness.state().1.clicks, 1);
+        assert_eq!(harness.state().0.ui.tab, "GPO test");
     }
 }

@@ -116,8 +116,7 @@ impl eframe::App for App {
         self.0.raw_input_hook(raw);
     }
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.0.ui(ui);
-        self.4.show(ui.ctx(), &mut self.0);
+        self.0.ui_with_extension(ui, Some(&mut self.4));
         self.3.show(frame);
     }
     fn on_exit(&mut self) {

@@ -288,12 +288,99 @@ pub struct Finding {
     pub found: String,
     pub suggested: String,
 }
+/// Locate unresolved double-braced fields in visible text, including headers and tables.
+/// Positions refer to the underlying paragraph bytes, even when tracked deletions precede a field.
+pub fn unresolved_fields(doc: &Document) -> Result<Vec<Finding>, String> {
+    let pattern = Regex::new(r"\{\{([^{}\r\n]*)\}\}").map_err(|e| e.to_string())?;
+    let mut findings = Vec::new();
+    let mut total = 0usize;
+    for story in stories(doc) {
+        for path in doc.para_paths(story) {
+            let Some(para) = doc.para(story, &path) else { continue };
+            total = total.checked_add(para.text.len()).ok_or("Document exceeds the review limit")?;
+            if total > LIMIT {
+                return Err("Document exceeds the review limit; review a section at a time".into());
+            }
+            let mut deleted = para.deleted_ranges();
+            deleted.sort_unstable_by_key(|range| range.start);
+            let mut next = deleted.iter().peekable();
+            let mut visible = String::new();
+            let mut offsets = Vec::new();
+            let mut object_bytes = Vec::new();
+            let mut object_index = 0usize;
+            for (raw, ch) in para.text.char_indices() {
+                while next.next_if(|range| range.end <= raw).is_some() {}
+                let keep = next.peek().is_none_or(|range| range.start > raw);
+                if ch == wordcraft_doc::para::OBJ {
+                    if keep && let Some(object) = para.objects.get(object_index) {
+                        let text = object.plain_text();
+                        total = total.checked_add(text.len()).ok_or("Document exceeds the review limit")?;
+                        if total > LIMIT || visible.len().saturating_add(text.len()) > LIMIT {
+                            return Err("Document exceeds the review limit; review a section at a time".into());
+                        }
+                        visible.push_str(text);
+                        offsets.extend(std::iter::repeat_n(raw, text.len()));
+                        object_bytes.extend(std::iter::repeat_n(true, text.len()));
+                    }
+                    object_index += 1;
+                } else if keep {
+                    visible.push(ch);
+                    offsets.extend(std::iter::repeat_n(raw, ch.len_utf8()));
+                    object_bytes.extend(std::iter::repeat_n(false, ch.len_utf8()));
+                }
+            }
+            for capture in pattern.captures_iter(&visible) {
+                let (Some(full), Some(field)) = (capture.get(0), capture.get(1)) else { continue };
+                let Some(offset) = offsets.get(full.start()).copied() else { continue };
+                let embedded = object_bytes.get(full.start()..full.end()).is_some_and(|bytes| bytes.iter().any(|value| *value));
+                let usable = !field.as_str().trim().is_empty() && field.as_str().len() <= 100;
+                let raw_end = offsets.get(full.end().saturating_sub(1)).and_then(|last| last.checked_add(1));
+                let contiguous = raw_end.and_then(|end| para.text.get(offset..end)).is_some_and(|raw| raw == full.as_str());
+                let code = if embedded {
+                    "template-field-object"
+                } else if !contiguous {
+                    "template-field-tracked"
+                } else if usable {
+                    "template-field"
+                } else {
+                    "template-field-invalid"
+                };
+                let found = if full.as_str().len() <= 120 {
+                    full.as_str().to_string()
+                } else {
+                    format!("{{{{{}…}}}}", field.as_str().chars().take(40).collect::<String>())
+                };
+                let message = if embedded {
+                    "ตรวจช่องข้อมูลในวัตถุหรือฟิลด์ของเอกสารด้วยตนเอง"
+                } else if !contiguous {
+                    "ตรวจช่องข้อมูลที่มีการติดตามการแก้ไขด้วยตนเอง"
+                } else if usable {
+                    "ยังไม่ได้กรอกข้อมูลในช่องเทมเพลต"
+                } else {
+                    "ชื่อช่องเทมเพลตว่างหรือยาวเกินไป"
+                };
+                findings.push(Finding {
+                    code: code.into(),
+                    message: message.into(),
+                    location: Some(Pos::new(story, path.clone(), offset)),
+                    found,
+                    suggested: if usable && !embedded && contiguous { field.as_str().into() } else { String::new() },
+                });
+                if findings.len() > 10_000 {
+                    return Err("Too many unresolved fields; review a section at a time".into());
+                }
+            }
+        }
+    }
+    Ok(findings)
+}
+
 pub fn validate(doc: &Document, p: &Profile, glossary: &[TermRule]) -> Result<Vec<Finding>, String> {
     let text = document_text(doc);
     if text.len() > LIMIT {
         return Err("Document exceeds the review limit; review a section at a time".into());
     }
-    let mut issues = Vec::new();
+    let mut issues = unresolved_fields(doc)?;
     let body_headings: Vec<String> = doc
         .para_paths(StoryRef::Body)
         .iter()
@@ -410,23 +497,38 @@ fn sections(doc: &Document) -> BTreeMap<String, String> {
 
 /// Fill explicit {{field}} placeholders, keeping surrounding runs and their formatting.
 pub fn fill_fields(doc: &mut Document, values: &BTreeMap<String, String>) -> Result<usize, String> {
+    if values.iter().any(|(key, value)| key.is_empty() || key.len() > 100 || value.len() > 100_000) {
+        return Err("Invalid template field".into());
+    }
     let mut count = 0;
     for story in stories(doc) {
         for path in doc.para_paths(story) {
+            let Some(para) = doc.para(story, &path) else { continue };
+            let text = para.text.clone();
+            let deleted = para.deleted_ranges();
+            let mut replacements = Vec::new();
             for (key, value) in values {
-                if key.is_empty() || key.len() > 100 || value.len() > 100_000 {
-                    return Err("Invalid template field".into());
-                }
                 let needle = format!("{{{{{key}}}}}");
-                let text = doc.para(story, &path).map(|p| p.text.clone()).unwrap_or_default();
-                let offsets: Vec<usize> = text.match_indices(&needle).map(|(i, _)| i).collect();
-                for off in offsets.into_iter().rev() {
-                    let p = doc.para_mut(story, &path).map_err(|e| e.to_string())?;
-                    let props = p.run_ranges().find(|(r, _)| r.contains(&off)).map(|(_, c)| c.clone()).unwrap_or_default();
-                    p.delete(off, off + needle.len()).map_err(|e| e.to_string())?;
-                    p.insert_text(off, value, &props).map_err(|e| e.to_string())?;
-                    count += 1;
+                for (start, _) in text.match_indices(&needle) {
+                    let end = start.saturating_add(needle.len());
+                    if !deleted.iter().any(|range| range.start < end && start < range.end) {
+                        replacements.push((start, end, value));
+                    }
+                    if replacements.len() > 10_000 {
+                        return Err("Too many template fields in a paragraph".into());
+                    }
                 }
+            }
+            replacements.sort_unstable_by_key(|(start, _, _)| std::cmp::Reverse(*start));
+            if replacements.windows(2).any(|pair| matches!(pair, [first, second] if second.1 > first.0)) {
+                return Err("Overlapping template fields cannot be filled safely".into());
+            }
+            for (start, end, value) in replacements {
+                let p = doc.para_mut(story, &path).map_err(|e| e.to_string())?;
+                let props = p.run_ranges().find(|(r, _)| r.contains(&start)).map(|(_, c)| c.clone()).unwrap_or_default();
+                p.delete(start, end).map_err(|e| e.to_string())?;
+                p.insert_text(start, value, &props).map_err(|e| e.to_string())?;
+                count += 1;
             }
         }
     }

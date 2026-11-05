@@ -636,7 +636,7 @@ fn draw_watermark(ctx: &mut RenderContext, view: Affine, page: &Page, wm: &wordc
     let mut x = 0.0;
     for g in &glyphs {
         let o = db.outline(&face, g.gid);
-        ctx.set_transform(view * base * Affine::translate((x, 0.0)) * Affine::scale(k));
+        ctx.set_transform(view * base * Affine::translate((x + g.x_offset as f64 * k, -g.y_offset as f64 * k)) * Affine::scale(k));
         ctx.fill_path(&o);
         x += g.x_advance as f64 * k;
     }

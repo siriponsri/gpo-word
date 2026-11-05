@@ -13,9 +13,9 @@
   <a href="docs/manual/th/README.md">User guide (Thai)</a>
 </p>
 
-> **Windows preview.** The portable package includes a locally built executable. Synthetic startup, document, batch and PDF checks have passed; full CI and representative private-template fidelity remain unverified. See [VALIDATION.md](VALIDATION.md) before operational use.
+> **Windows preview.** The portable package includes a locally built executable. Synthetic startup, document, batch and PDF checks passed in development builds, and the current source passed local CI. Representative private-template fidelity remains unverified. See [VALIDATION.md](VALIDATION.md) before operational use.
 
-GPO Word adapts [KhianKrub](https://github.com/chanonss/khiankrub) and [WordCraft](https://github.com/storytold/wordcraft) for teams preparing work instructions, policies, forms, logbooks, specifications, procurement documents and internal memoranda. It combines a native editor with editable template packs, deterministic document checks and optional AI drafting.
+GPO Word adapts [KhianKrub](https://github.com/chanonss/khiankrub) and [WordCraft](https://github.com/storytold/wordcraft) for teams preparing work instructions, policies, forms, logbooks, specifications, procurement documents and internal memoranda. It combines a native editor with editable template packs, deterministic document checks and optional AI drafting. The GPO ribbon tab opens task controls in a docked pane alongside the document. Optional start actions, save/check status, searchable template text previews, grouped findings, CSV mapping and an exact AI request preview keep routine work close to the editor.
 
 The public repository contains code, documentation and synthetic examples. This local all-in-one ZIP also includes a private template pack under gitignored docsStorage. Keep that directory out of public Git commits; completed documents and API keys are not bundled. This is an independent project; the project name and new logo do not imply endorsement by the Government Pharmaceutical Organization or either upstream project.
 
@@ -81,11 +81,11 @@ For setup, PowerShell policy handling and troubleshooting, use [the Windows buil
 
 This all-in-one ZIP already includes the private template pack in `docsStorage`, with `catalog.json` and `pack.json` directly inside it. The folder is gitignored; no separate extraction is needed.
 
-The current private pack contains 15 copied source templates and one memorandum-header preset. It does not contain completed memorandum bodies. It supplies no dedicated OJT or TOR template.
+The current private pack contains 15 copied source templates and one memorandum-header preset. It is a curated selection from a larger local reference folder, not a copy of every reference document. It does not contain completed memorandum bodies. It supplies no dedicated OJT or TOR template.
 
 Choose the template location in Settings, or place `docsStorage` beside the portable executable. Keep revised template files inside docsStorage before selecting them so their relative paths remain portable. Template paths remain relative so the pack can move between PCs. Font names do not install fonts: install appropriately licensed Thai fonts on each machine where exact appearance is required.
 
-Routine field binding, profile text, terminology, font and heading changes are intended to be editable through the workbench. A changed table or header layout still needs a revised template in the editor; arbitrary layout migration is not automatic.
+Routine field binding, profile text, terminology, font and heading changes are available through the GPO ribbon and its docked task pane. A changed table or header layout still needs a revised template in the editor; arbitrary layout migration is not automatic.
 
 ## Optional AI drafting
 

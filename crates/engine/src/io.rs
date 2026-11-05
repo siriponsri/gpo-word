@@ -664,6 +664,21 @@ pub fn save_path_with(path: &std::path::Path, _doc: &Document, _password: Option
     Err(format!("{}: files are saved through the browser on the web", path.display()))
 }
 
+/// Save a new file exclusively, refusing to replace an existing path.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn save_path_new_with(path: &std::path::Path, doc: &Document, password: Option<&str>, opts: &ExportOptions) -> Result<(), String> {
+    use std::io::Write;
+    crate::file_access::check_write(&path.to_string_lossy())?;
+    let bytes = save_bytes_with(&path.to_string_lossy(), doc, password, opts)?;
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    file.write_all(&bytes).and_then(|()| file.sync_all()).map_err(|e| format!("{}: write failed; a partial new file may remain: {e}", path.display()))
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn save_path_new_with(path: &std::path::Path, _doc: &Document, _password: Option<&str>, _opts: &ExportOptions) -> Result<(), String> {
+    Err(format!("{}: files are saved through the browser on the web", path.display()))
+}
+
 /// Decode text bytes: UTF-8 (with or without BOM), UTF-16 LE/BE (BOM or sniffed), else the
 /// legacy encoding they look like — GBK, Big5, Shift_JIS, Windows-1252… (see
 /// [`wordcraft_formats::txt::decode`]).

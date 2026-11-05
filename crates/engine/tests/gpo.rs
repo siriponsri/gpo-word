@@ -179,3 +179,117 @@ fn batch_csv_rejects_oversized_and_invalid_utf8_files() {
     std::fs::remove_file(csv).unwrap();
     std::fs::remove_dir(dir).unwrap();
 }
+
+#[test]
+fn unresolved_fields_cover_body_tables_headers_and_respect_tracked_deletions() {
+    use wordcraft_doc::para::Run;
+    let mut d = Document::from_text("เอกสาร {{documentNumber}} และ {{department}}");
+    d.body.push(Arc::new(Block::Table(Table {
+        rows: vec![Row { cells: vec![Cell::with_text("เครื่อง {{machineCode}}")], ..Default::default() }],
+        ..Default::default()
+    })));
+    let header = d.add_part(PartKind::Header, vec![para_block(Paragraph::with_text("รุ่น {{revision}}", Default::default()))]);
+    let fields = unresolved_fields(&d).unwrap();
+    assert_eq!(fields.len(), 4);
+    assert!(fields.iter().any(|f| f.suggested == "revision" && f.location.as_ref().unwrap().story == StoryRef::Part(header)));
+    assert!(fields.iter().any(|f| f.suggested == "machineCode" && f.location.as_ref().unwrap().path.cell().is_some()));
+    for finding in &fields {
+        let pos = finding.location.as_ref().unwrap();
+        assert!(d.para(pos.story, &pos.path).unwrap().text[pos.off..].starts_with("{{"));
+    }
+    assert_eq!(validate(&d, &Profile::default(), &[]).unwrap().iter().filter(|f| f.code == "template-field").count(), 4);
+
+    let raw = "ก่อน {{visible}} {{hidden}} {{naXme}}";
+    let hidden = raw.find("{{hidden}}").unwrap();
+    let hidden_end = hidden + "{{hidden}}".len();
+    let x = raw.find('X').unwrap();
+    let mut paragraph = Paragraph::with_text(raw, Default::default());
+    let deleted = CharProps { del: Some(1), ..Default::default() };
+    paragraph.runs = vec![
+        Run { len: hidden, props: Default::default() },
+        Run { len: hidden_end - hidden, props: deleted.clone() },
+        Run { len: x - hidden_end, props: Default::default() },
+        Run { len: 1, props: deleted },
+        Run { len: raw.len() - x - 1, props: Default::default() },
+    ];
+    let mut tracked = Document::new();
+    tracked.body = vec![para_block(paragraph)];
+    let fields = unresolved_fields(&tracked).unwrap();
+    assert_eq!(fields.len(), 2);
+    assert!(fields.iter().any(|f| f.code == "template-field" && f.suggested == "visible"));
+    assert!(fields.iter().any(|f| f.code == "template-field-tracked" && f.found == "{{name}}"));
+    assert!(!fields.iter().any(|f| f.found == "{{hidden}}"));
+    assert_eq!(
+        fill_fields(&mut tracked, &BTreeMap::from([("visible".into(), "ok".into()), ("hidden".into(), "must not replace".into())])).unwrap(),
+        1
+    );
+    assert!(tracked.body[0].as_para().unwrap().text.contains("{{hidden}}"));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn batch_preview_maps_fields_and_refuses_changed_csv_and_existing_files() {
+    let dir = std::env::temp_dir().join(format!("gpo-merge-preview-{}", std::process::id()));
+    std::fs::create_dir(&dir).unwrap();
+    let csv = dir.join("input.csv");
+    std::fs::write(&csv, "code,person\nM01,Alice\n").unwrap();
+    let mut session = Session::new(Document::from_text("Hello {{name}}"));
+    let mut params = json!({"csv": csv, "directory": dir, "nameField":"code", "mapping":{"name":"person"}});
+    let preview = session.run("gpo.mergePreview", &params).unwrap();
+    assert_eq!(preview["ready"], true);
+    assert_eq!(preview["sample"][0][1], "Alice");
+    params["csvDigest"] = preview["csvDigest"].clone();
+    std::fs::write(&csv, "code,person\nM01,Bob\n").unwrap();
+    assert!(session.run("gpo.merge", &params).is_err());
+    assert!(!dir.join("M01.docx").exists());
+    let preview = session.run("gpo.mergePreview", &params).unwrap();
+    params["csvDigest"] = preview["csvDigest"].clone();
+    assert_eq!(session.run("gpo.merge", &params).unwrap()["complete"], true);
+    let output = dir.join("M01.docx");
+    let saved = std::fs::read(&output).unwrap();
+    assert!(wordcraft_engine::io::open_path(&output).unwrap().plain_text(StoryRef::Body).contains("Bob"));
+    assert!(session.run("gpo.merge", &params).is_err());
+    assert_eq!(std::fs::read(&output).unwrap(), saved);
+    std::fs::remove_file(output).unwrap();
+    std::fs::remove_file(csv).unwrap();
+    std::fs::remove_dir(dir).unwrap();
+}
+
+#[test]
+fn empty_template_placeholder_is_reported_for_manual_correction() {
+    let fields = unresolved_fields(&Document::from_text("Missing {{}} here")).unwrap();
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].code, "template-field-invalid");
+}
+
+#[test]
+fn field_values_are_inserted_literally_without_replacing_placeholders_inside_them() {
+    let mut doc = Document::from_text("{{a}} and {{z}}");
+    let values = BTreeMap::from([("a".into(), "literal {{z}}".into()), ("z".into(), "final".into())]);
+    assert_eq!(fill_fields(&mut doc, &values).unwrap(), 2);
+    assert_eq!(doc.plain_text(StoryRef::Body), "literal {{z}} and final");
+}
+
+#[test]
+fn thai_watermark_selects_a_thai_font_without_changing_default_behavior() {
+    let mut session = Session::new(Document::from_text("Synthetic document"));
+    session.run("design.watermark", &json!({"text":"ฉบับร่าง","font":"TH Sarabun New"})).unwrap();
+    let watermark = session.doc.settings.watermark.as_ref().unwrap();
+    assert_eq!(watermark.text, "ฉบับร่าง");
+    assert_eq!(watermark.font, "TH Sarabun New");
+    assert!(session.run("design.watermark", &json!({"font":""})).is_err());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn gpo_pdf_no_overwrite_preserves_existing_file() {
+    let dir = std::env::temp_dir().join(format!("gpo-pdf-no-overwrite-{}", std::process::id()));
+    std::fs::create_dir(&dir).unwrap();
+    let path = dir.join("existing.pdf");
+    std::fs::write(&path, b"keep existing pdf").unwrap();
+    let mut session = Session::new(Document::from_text("Synthetic PDF"));
+    assert!(session.run("gpo.exportPdf", &json!({"path":path,"noOverwrite":true})).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), b"keep existing pdf");
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(dir).unwrap();
+}

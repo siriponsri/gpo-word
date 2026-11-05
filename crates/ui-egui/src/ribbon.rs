@@ -166,6 +166,11 @@ pub fn in_table_public(app: &WordApp) -> bool {
 }
 
 pub fn show(app: &mut WordApp, ui: &mut Ui) {
+    show_with_extension(app, ui, &mut None);
+}
+
+/// Draw the normal ribbon with an optional tab supplied by the host.
+pub fn show_with_extension(app: &mut WordApp, ui: &mut Ui, extension: &mut Option<&mut dyn crate::RibbonExtension>) {
     let t = Tokens::get(ui.ctx());
     if app.session.view.read_mode {
         reading_toolbar(app, ui, t);
@@ -197,8 +202,15 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
     // contextual ones (the Outlining tab right after File). A contextual tab (Table, Picture
     // Format) may be stored while the selection moved away, and a tab may have been hidden.
     let user_tabs = app.session.ribbon.tabs().into_owned();
+    let extension_label = extension.as_ref().map(|ext| (ext.tab_name().to_owned(), ext.tab_label().to_owned()));
     let mut tabs: Vec<(String, bool)> = vec![("File".to_string(), false)];
     tabs.extend(user_tabs.iter().filter(|e| !e.hidden).map(|e| (e.name.clone(), e.custom)));
+    if let Some(ext) = extension.as_ref() {
+        let name = ext.tab_name();
+        if !tabs.iter().any(|(tab, _)| tab == name) {
+            tabs.insert(1, (name.to_owned(), true));
+        }
+    }
     for ct in contextual_tabs(&app.session) {
         if ct == "Outlining" {
             tabs.insert(1.min(tabs.len()), (ct.to_string(), false));
@@ -321,7 +333,20 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                         // The tabs that don't fit go into a » menu at the end of the strip. File, the
                         // active tab and the contextual tabs (appended last) stay on the strip (#897).
-                        let labels: Vec<&str> = tabs.iter().map(|(tab, custom)| if *custom { tab.as_str() } else { tl!(tab) }).collect();
+                        let labels: Vec<&str> = tabs
+                            .iter()
+                            .map(|(tab, custom)| {
+                                if let Some((id, label)) = &extension_label
+                                    && tab == id
+                                {
+                                    label.as_str()
+                                } else if *custom {
+                                    tab.as_str()
+                                } else {
+                                    tl!(tab)
+                                }
+                            })
+                            .collect();
                         let widths: Vec<(f32, bool)> = tabs
                             .iter()
                             .zip(&labels)
@@ -336,7 +361,15 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                             let (tab, custom) = (tab.as_str(), *custom);
                             let contextual = !custom && wordcraft_engine::ribbon::CONTEXTUAL_TABS.contains(&tab);
                             // A custom tab's name is the user's own text: shown as typed.
-                            let shown = if custom { tab } else { tl!(tab) };
+                            let shown = if let Some((id, label)) = &extension_label
+                                && tab == id
+                            {
+                                label.as_str()
+                            } else if custom {
+                                tab
+                            } else {
+                                tl!(tab)
+                            };
                             let w = ui.ctx().fonts_mut(|f| f.layout_no_wrap(shown.to_string(), medium(12.5), t.text).size().x) + 18.0;
                             let (r, resp) = ui.allocate_exact_size(vec2(w, 30.0), Sense::click());
                             if app.ui.keytips == crate::keytips::Phase::Tabs {
@@ -435,7 +468,8 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
             // Right-click on the ribbon (outside a button): Customize Ribbon. Registered first, so
             // the buttons drawn over it keep their own clicks.
             // No document open (#1129): every command is greyed out but Help's.
-            if !app.has_document() && app.ui.tab != "Help" {
+            let is_extension = extension.as_ref().is_some_and(|ext| app.ui.tab == ext.tab_name());
+            if !app.has_document() && app.ui.tab != "Help" && !is_extension {
                 ui.disable();
             }
             let bg = ui.interact(ui.max_rect(), ui.id().with("ribbon_background"), Sense::click());
@@ -444,6 +478,12 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
             let scroll = egui::ScrollArea::horizontal().scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden).show(ui, |ui| {
                 ui.horizontal_top(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                    if is_extension {
+                        if let Some(ext) = extension.as_mut() {
+                            ext.ribbon(app, ui);
+                        }
+                        return;
+                    }
                     match entry {
                         // Every tab hidden: nothing to show.
                         Some(e) if e.hidden => return,

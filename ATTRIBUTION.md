@@ -127,3 +127,18 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 | `docs/manual/th/images/ai.png` | GPO Word project | MIT OR Apache-2.0 | Running GPO Word with synthetic document. |
 | `docs/manual/th/images/review.png` | GPO Word project | MIT OR Apache-2.0 | Running GPO Word with synthetic document. |
 | `docs/manual/th/images/tools.png` | GPO Word project | MIT OR Apache-2.0 | Running GPO Word with synthetic document. |
+
+| Asset | Creator/source | Distribution | Notes |
+| --- | --- | --- | --- |
+| `assets/icons/gpo/documents.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/documents.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/review.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/review.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/ai.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/ai.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/templates.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/templates.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/tools.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/tools.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/settings.svg` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
+| `assets/icons/gpo/settings.png` | Original GPO Word project artwork | MIT OR Apache-2.0 | Navigation icon; PNG rendered from the accompanying SVG. |
